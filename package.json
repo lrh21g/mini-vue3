@@ -1,0 +1,57 @@
+{
+  "name": "mini-vue3",
+  "version": "1.0.0",
+  "description": "",
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://github.com/lrh21g/mini-vue3#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lrh21g/mini-vue3.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lrh21g/mini-vue3/issues"
+  },
+  "keywords": [],
+  "main": "index.js",
+  "engines": {
+    "node": ">=18.20.4"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "node-v": "node node-switch.js",
+    "commit": "git-cz",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^3.12.0",
+    "@changesets/cli": "^2.27.11",
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@commitlint/cz-commitlint": "^19.6.1",
+    "@commitlint/types": "^19.5.0",
+    "@vitest/ui": "^2.1.8",
+    "commitizen": "^4.3.1",
+    "cz-git": "^1.11.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-format": "^0.1.3",
+    "husky": "^9.1.7",
+    "inquirer": "9",
+    "lint-staged": "^15.2.11",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "config": {
+    "commitizen": {
+      "// path": "@commitlint/cz-commitlint",
+      "path": "./node_modules/cz-git"
+    }
+  },
+  "lint-staged": {
+    "packages/**/*.{js,ts}": [
+      "eslint --fix",
+      "git add"
+    ]
+  }
+}

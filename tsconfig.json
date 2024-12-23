@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2016",
+    "jsx": "preserve",
+    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "noImplicitAny": false,
+    "downlevelIteration": true,
+    "preserveConstEnums": true,
+    "removeComments": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}

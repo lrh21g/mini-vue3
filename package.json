@@ -22,7 +22,9 @@
     "node-v": "node node-switch.js",
     "commit": "git-cz",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "test": "vitest",
+    "test:ui": "vitest --ui"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.12.0",

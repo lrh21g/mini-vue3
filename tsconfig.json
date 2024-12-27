@@ -6,6 +6,12 @@
     "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "Node",
+    "paths": {
+      "@mini-vue3/*": ["packages/*/src"]
+    },
+    "types": [
+      "vitest/globals"
+    ],
     "strict": true,
     "noImplicitAny": false,
     "downlevelIteration": true,
@@ -14,5 +20,9 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "skipLibCheck": true
-  }
+  },
+  "include": [
+    "packages/*/src",
+    "packages/*/__tests__"
+  ]
 }

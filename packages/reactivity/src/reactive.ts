@@ -7,6 +7,11 @@ import { mutableHandlers, readonlyHandlers } from './baseHandlers'
 export const reactiveMap = new WeakMap()
 export const readonlyMap = new WeakMap()
 
+export enum ReactiveFlags {
+  IS_REACTIVE = '__v_isReactive',
+  IS_READONLY = '__v_isReadonly',
+}
+
 /**
  * 创建响应式对象
  * @param target 需要代理的原对象
@@ -30,4 +35,12 @@ export function reactive(target) {
 
 export function readonly(target) {
   return createReactiveObject(target, true, readonlyMap, readonlyHandlers)
+}
+
+export function isReactive(val) {
+  return !!val[ReactiveFlags.IS_REACTIVE]
+}
+
+export function isReadonly(val) {
+  return !!val[ReactiveFlags.IS_READONLY]
 }

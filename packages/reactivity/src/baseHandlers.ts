@@ -1,9 +1,17 @@
 import { extend } from '@mini-vue3/shared'
 import { track, trigger } from './effect'
+import { ReactiveFlags } from './reactive'
 
 // 创建拦截读取操作的捕获器
 function createGetter(isReadonly = false) {
   return function get(target, key, receiver) {
+    if (key === ReactiveFlags.IS_REACTIVE) {
+      return !isReadonly
+    }
+    else if (key === ReactiveFlags.IS_READONLY) {
+      return isReadonly
+    }
+
     const res = Reflect.get(target, key, receiver)
 
     if (!isReadonly) {

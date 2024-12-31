@@ -1,4 +1,5 @@
 import { extend } from '@mini-vue3/shared'
+import { createDep } from './dep'
 
 // 存储依赖关系
 // WeakMap ： 键值对的集合，其中的键必须是对象或 Symbol ，且值可以是任意的 JavaScript 类型，并且不会创建对它的键的强引用。
@@ -7,35 +8,60 @@ import { extend } from '@mini-vue3/shared'
 const targetMap = new WeakMap()
 
 let activeEffect
+let shouldTrack = true
 
 class ReactiveEffect {
-  private _fn: any
-  public scheduler?: () => void
-
-  // 用于记录 effect 对应的依赖属性
+  // 用于维护父 effect
+  parent = null
+  // 用于记录 effect 依赖的属性
   deps = []
   // 是否是响应式的 effect
   active = true
   onStop?: () => void
 
-  constructor(fn, scheduler?: () => void) {
-    this._fn = fn
-    this.scheduler = scheduler
-  }
+  constructor(public fn, public scheduler?: () => void) {}
 
   run() {
     if (!this.active) {
-      return this._fn()
+      return this.fn()
     }
 
-    // eslint-disable-next-line ts/no-this-alias
-    activeEffect = this
-    const r = this._fn()
-    return r
+    let parent: ReactiveEffect | null = activeEffect
+    while (parent) {
+      if (parent === this)
+        return
+      parent = parent.parent
+    }
+
+    try {
+      this.parent = activeEffect
+      // eslint-disable-next-line ts/no-this-alias
+      activeEffect = this
+
+      // 在执行前清除当前 effect 依赖的 deps ，防止出现以下情况：
+      // const flag = reactive({ value: true })
+      // const data = reactive({ msg: 'flag value is true' })
+      // effect(() => {
+      //   if (flag.value) {
+      //     console.log(data.msg)
+      //   } else {
+      //     console.log('flag value is false')
+      //   }
+      // })
+      // flag.value = false
+      // 在上述示例中，flag.value 设置为 false 后，此时修改 data.msg 的值也会触发 effect
+      // 为避免一些不需要的依赖触发，在执行 effect 之前需要清除当前 effect 中依赖的 deps 数组
+      cleanupEffect(this)
+
+      return this.fn()
+    }
+    finally {
+      activeEffect = this.parent
+      this.parent = null
+    }
   }
 
-  // 停止当前的 effect ： 取消 effect 与 dep 的关联
-  // 将 dep 上存储的 effect 删除即可
+  // 停止当前的 effect ： 取消 effect 与 dep 的关联，将 dep 上存储的 effect 删除即可
   stop() {
     if (this.active) {
       cleanupEffect(this)
@@ -47,7 +73,7 @@ class ReactiveEffect {
   }
 }
 
-// 清楚 effect
+// 清楚 effect 依赖的响应式对象
 function cleanupEffect(effect) {
   // 不能直接使用 effect.deps = []
   // 该操作只会清除当前 effect 对应的 deps 数组，而不会取消收集依赖（track）时 dep 关联的 effect
@@ -79,9 +105,32 @@ export function stop(runner) {
   runner.effect.stop()
 }
 
-// 收集依赖
+export const isTracking = () => shouldTrack && activeEffect !== undefined
+
+// 暂停跟踪 （依赖收集）
+export function pauseTracking() {
+  shouldTrack = false
+}
+
+// 开启跟踪（依赖收集）
+export function enableTracking() {
+  shouldTrack = true
+}
+
+/**
+ * effect 依赖收集
+ * @param target
+ * @param type
+ * @param key
+ */
 export function track(target, type, key) {
-  // console.log(`触发 track -> target: ${target} type:${type} key:${key}`)
+  // activeEffect（当前的effect）为空时不收集
+  // eg :
+  // const state = reactive({ num: 1 })
+  // state.num // 此时，访问 num 时， activeEffect 为 undefined ， isTracking() 为 false
+  // effect(() => { state.num }) // 此时，在 effect 函数中访问 num ， activeEffect 有值， isTracking() 为 true
+  if (!isTracking())
+    return
 
   // 获取当前 target 对象的依赖集
   let depsMap = targetMap.get(target)
@@ -109,7 +158,7 @@ export function track(target, type, key) {
     //    set.add(a)
     //    set.add(b)
     //    ==> set = { () => { console.log('xx') }, () => { console.log('xx') } }
-    dep = new Set()
+    dep = createDep()
     depsMap.set(key, dep)
   }
 
@@ -118,31 +167,58 @@ export function track(target, type, key) {
 
 // 收集 effect
 export function trackEffects(dep) {
-  if (dep.has(activeEffect))
-    return
-
-  if (!activeEffect)
-    return
-
-  // 将当前的 activeEffect 添加到 dep 中，主要用于响应式对象变化时执行对应的 effect
-  dep.add(activeEffect)
-  // 将当前依赖添加到 activeEffect 的 deps 数组中，主要用于删除当前 effect 对应的 dep
-  activeEffect.deps.push(dep)
+  if (!dep.has(activeEffect)) {
+    // 将 activeEffect 添加到 dep 中，主要用于响应式对象变化时执行对应的 effect
+    dep.add(activeEffect)
+    // 将 dep 添加到 activeEffect(ReactiveEffect) 的 deps 数组中，主要用于删除 effect 对应的 dep
+    activeEffect.deps.push(dep)
+  }
 }
 
-// 触发更新
+/**
+ * 触发 effect 更新
+ * @param target
+ * @param type 触发的类型
+ * @param key 当前的触发的key
+ */
 export function trigger(target, type, key) {
-  // console.log(`触发 trigger -> target: ${target} type:${type} key:${key}`)
-
   const depsMap = targetMap.get(target)
-  const dep = depsMap.get(key)
 
-  for (const effect of dep) {
-    if (effect.scheduler) {
-      effect.scheduler()
-    }
-    else {
-      effect.run()
+  // 如果当前的 target 没有依赖就直接返回
+  if (!depsMap)
+    return
+
+  // 使用 Set 可以对 effect 去重
+  // eg :
+  // const state = reactive({ a: 1, b: 2 })
+  // effect(() => { state.a + state.b })
+  // 在该 effect 中， target 为 state， key 为 a 和 b
+  // 收集了两个依赖 a => () => { state.a + state.b } 和 b => () => { state.a + state.b }
+  // 两个属性的依赖 effect 是同一个，所以需要去重
+  const effects = new Set()
+  // 添加需要执行的 effect
+  const add = (effectsToAdd) => {
+    if (effectsToAdd) {
+      effectsToAdd.forEach((effect) => {
+        effects.add(effect)
+      })
     }
   }
+
+  if (key !== void 0) {
+    // 获取当前 key 的依赖，添加到 effects 中
+    add(depsMap.get(key))
+  }
+
+  // createDep 与 cleanupEffect 配合使用，直接重新创建一个引用，避免循环执行
+  triggerEffects(createDep(effects))
+}
+
+export function triggerEffects(dep) {
+  dep.forEach((effect: any) => {
+    // effect !== activeEffect 用于处理在 effect 中修改响应式变量导致的无限循环
+    if (activeEffect !== effect) {
+      effect.scheduler ? effect.scheduler() : effect.run()
+    }
+  })
 }

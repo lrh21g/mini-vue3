@@ -1,6 +1,6 @@
-import { extend } from '@mini-vue3/shared'
+import { extend, isObject } from '@mini-vue3/shared'
 import { track, trigger } from './effect'
-import { ReactiveFlags } from './reactive'
+import { reactive, ReactiveFlags, readonly } from './reactive'
 
 // 创建拦截读取操作的捕获器
 function createGetter(isReadonly = false) {
@@ -15,7 +15,13 @@ function createGetter(isReadonly = false) {
     const res = Reflect.get(target, key, receiver)
 
     if (!isReadonly) {
+      // 非只读，则进行依赖收集
       track(target, 'get', key)
+    }
+
+    // 如果属性为对象，则深度代理
+    if (isObject(res)) {
+      return isReadonly ? readonly(res) : reactive(res)
     }
 
     return res

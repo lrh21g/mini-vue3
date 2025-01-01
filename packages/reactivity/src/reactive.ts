@@ -1,4 +1,4 @@
-import { mutableHandlers, readonlyHandlers } from './baseHandlers'
+import { mutableHandlers, readonlyHandlers, shallowReactiveHandlers } from './baseHandlers'
 
 // 用于缓存响应式对象
 // WeakMap ： 键值对的集合，其中的键必须是对象或 Symbol ，且值可以是任意的 JavaScript 类型，并且不会创建对它的键的强引用。
@@ -6,10 +6,14 @@ import { mutableHandlers, readonlyHandlers } from './baseHandlers'
 // see : https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WeakMap
 export const reactiveMap = new WeakMap()
 export const readonlyMap = new WeakMap()
+export const shallowReactiveMap = new WeakMap()
+export const shallowReadonlyMap = new WeakMap()
 
 export enum ReactiveFlags {
   IS_REACTIVE = '__v_isReactive',
   IS_READONLY = '__v_isReadonly',
+  IS_SHALLOW = '__v_isShallow',
+  RAW = '__v_raw',
 }
 
 /**
@@ -20,6 +24,19 @@ export enum ReactiveFlags {
  * @param baseHandlers 普通对象的拦截处理
  */
 export function createReactiveObject(target, isReadonly, proxyMap, baseHandlers) {
+  if (
+    target[ReactiveFlags.RAW]
+    && !(isReadonly && target[ReactiveFlags.IS_REACTIVE])
+  ) {
+    return target
+  }
+
+  // 判断当前的对象是否存在proxy，存在就不必创建直接返回
+  const existProxy = proxyMap.get(target)
+  if (existProxy) {
+    return existProxy
+  }
+
   const proxy = new Proxy(
     target,
     baseHandlers,
@@ -37,10 +54,18 @@ export function readonly(target) {
   return createReactiveObject(target, true, readonlyMap, readonlyHandlers)
 }
 
+export function shallowReactive(target) {
+  return createReactiveObject(target, false, shallowReactiveMap, shallowReactiveHandlers)
+}
+
 export function isReactive(val) {
   return !!val[ReactiveFlags.IS_REACTIVE]
 }
 
 export function isReadonly(val) {
   return !!val[ReactiveFlags.IS_READONLY]
+}
+
+export function isShallow(val) {
+  return !!val[ReactiveFlags.IS_SHALLOW]
 }

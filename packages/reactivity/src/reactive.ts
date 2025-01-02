@@ -1,4 +1,6 @@
+import { isObject } from '@mini-vue3/shared'
 import { mutableHandlers, readonlyHandlers, shallowReactiveHandlers, shallowReadonlyHandlers } from './baseHandlers'
+import { ReactiveFlags } from './constants'
 
 // 用于缓存响应式对象
 // WeakMap ： 键值对的集合，其中的键必须是对象或 Symbol ，且值可以是任意的 JavaScript 类型，并且不会创建对它的键的强引用。
@@ -8,13 +10,6 @@ export const reactiveMap = new WeakMap()
 export const readonlyMap = new WeakMap()
 export const shallowReactiveMap = new WeakMap()
 export const shallowReadonlyMap = new WeakMap()
-
-export enum ReactiveFlags {
-  IS_REACTIVE = '__v_isReactive',
-  IS_READONLY = '__v_isReadonly',
-  IS_SHALLOW = '__v_isShallow',
-  RAW = '__v_raw',
-}
 
 /**
  * 创建响应式对象
@@ -60,6 +55,14 @@ export function shallowReactive(target) {
 
 export function shallowReadonly(target) {
   return createReactiveObject(target, true, shallowReadonlyMap, shallowReadonlyHandlers)
+}
+
+export const toReactive = val => isObject(val) ? reactive(val) : val
+
+// 转换为普通对象
+export function toRaw(observed) {
+  const raw = observed && (observed as any)[ReactiveFlags.RAW]
+  return raw ? toRaw(raw) : observed
 }
 
 export function isReactive(val) {

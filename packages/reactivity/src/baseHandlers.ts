@@ -1,6 +1,8 @@
 import { extend, isObject } from '@mini-vue3/shared'
+import { ReactiveFlags } from './constants'
 import { track, trigger } from './effect'
-import { reactive, ReactiveFlags, reactiveMap, readonly, readonlyMap, shallowReactiveMap, shallowReadonlyMap } from './reactive'
+import { reactive, reactiveMap, readonly, readonlyMap, shallowReactiveMap, shallowReadonlyMap } from './reactive'
+import { isRef } from './ref'
 
 // 创建拦截读取操作的捕获器
 function createGetter(isReadonly = false, isShallow = false) {
@@ -34,7 +36,12 @@ function createGetter(isReadonly = false, isShallow = false) {
       return
     }
 
-    const res = Reflect.get(target, key, receiver)
+    const res = Reflect.get(
+      target,
+      key,
+      // 如果 target 是一个 ref 代理，则使用原 ref
+      isRef(target) ? target : receiver,
+    )
 
     if (!isReadonly) {
       // 非只读，则进行依赖收集
@@ -58,7 +65,12 @@ function createGetter(isReadonly = false, isShallow = false) {
 // 创建拦截设置操作的捕获器
 function createSetter(_isShallow = false) {
   return function set(target, key, value, receiver) {
-    const res = Reflect.set(target, key, value, receiver)
+    const res = Reflect.set(
+      target,
+      key,
+      value,
+      isRef(target) ? target : receiver,
+    )
 
     trigger(target, 'set', key)
 

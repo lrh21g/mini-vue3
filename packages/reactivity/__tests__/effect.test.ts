@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
 import { effect, stop } from '../src/effect'
 import { reactive } from '../src/reactive'
 
-describe('effect', () => {
+describe('reactivity/effect', () => {
   it('should observe basic properties', () => {
     let dummy
     const counter = reactive({ num: 0 })

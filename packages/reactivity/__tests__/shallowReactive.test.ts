@@ -1,6 +1,6 @@
 import { isReactive, isShallow, reactive, shallowReactive } from '../src/reactive'
 
-describe('shallowReactive', () => {
+describe('reactivity/shallowReactive', () => {
   it('should not make non-reactive properties reactive', () => {
     const props = shallowReactive({ n: { foo: 1 } })
     expect(isReactive(props.n)).toBe(false)

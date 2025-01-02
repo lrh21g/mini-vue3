@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest'
 import { isProxy, isReactive, reactive, readonly, shallowReactive, shallowReadonly } from '../src/reactive'
 
-describe('reactive', () => {
+describe('reactivity/reactive', () => {
   it('object', () => {
     const original = { foo: 1 }
     const observed = reactive(original)

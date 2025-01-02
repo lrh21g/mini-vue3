@@ -73,3 +73,7 @@ export function isReadonly(val) {
 export function isShallow(val) {
   return !!val[ReactiveFlags.IS_SHALLOW]
 }
+
+export function isProxy(val) {
+  return !!val[ReactiveFlags.RAW]
+}

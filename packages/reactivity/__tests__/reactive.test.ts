@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isReactive, reactive } from '../src/reactive'
+import { isProxy, isReactive, reactive, readonly, shallowReactive, shallowReadonly } from '../src/reactive'
 
 describe('reactive', () => {
   it('object', () => {
@@ -28,5 +28,22 @@ describe('reactive', () => {
     expect(isReactive(observed.nested)).toBe(true)
     expect(isReactive(observed.array)).toBe(true)
     expect(isReactive(observed.array[0])).toBe(true)
+  })
+
+  it('isProxy', () => {
+    const foo = {}
+    expect(isProxy(foo)).toBe(false)
+
+    const fooRe = reactive(foo)
+    expect(isProxy(fooRe)).toBe(true)
+
+    const fooSRe = shallowReactive(foo)
+    expect(isProxy(fooSRe)).toBe(true)
+
+    const barRl = readonly(foo)
+    expect(isProxy(barRl)).toBe(true)
+
+    const barSRl = shallowReadonly(foo)
+    expect(isProxy(barSRl)).toBe(true)
   })
 })

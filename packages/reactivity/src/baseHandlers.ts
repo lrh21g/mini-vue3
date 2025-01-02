@@ -86,6 +86,8 @@ const get = createGetter()
 const readonlyGet = createGetter(true)
 // 浅层的 getter
 const shallowGet = createGetter(false, true)
+// 只读浅层的 getter
+const shallowReadonlyGet = createGetter(true, true)
 
 // 普通的 setter
 const set = createSetter()
@@ -106,3 +108,8 @@ export const shallowReactiveHandlers = {
   get: shallowGet,
   set: shallowSet,
 }
+
+export const shallowReadonlyHandlers = extend(
+  { get: shallowReadonlyGet },
+  readOnlyObj,
+)

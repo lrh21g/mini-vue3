@@ -1,4 +1,4 @@
-import { mutableHandlers, readonlyHandlers, shallowReactiveHandlers } from './baseHandlers'
+import { mutableHandlers, readonlyHandlers, shallowReactiveHandlers, shallowReadonlyHandlers } from './baseHandlers'
 
 // 用于缓存响应式对象
 // WeakMap ： 键值对的集合，其中的键必须是对象或 Symbol ，且值可以是任意的 JavaScript 类型，并且不会创建对它的键的强引用。
@@ -56,6 +56,10 @@ export function readonly(target) {
 
 export function shallowReactive(target) {
   return createReactiveObject(target, false, shallowReactiveMap, shallowReactiveHandlers)
+}
+
+export function shallowReadonly(target) {
+  return createReactiveObject(target, true, shallowReadonlyMap, shallowReadonlyHandlers)
 }
 
 export function isReactive(val) {

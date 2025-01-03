@@ -1,8 +1,8 @@
-import { hasChanged } from '@mini-vue3/shared'
+import { hasChanged, isArray, isFunction, isObject } from '@mini-vue3/shared'
 import { ReactiveFlags } from './constants'
 import { createDep } from './dep'
 import { isTracking, trackEffects, triggerEffects } from './effect'
-import { isReadonly, isShallow, toRaw, toReactive } from './reactive'
+import { isReactive, isReadonly, isShallow, toRaw, toReactive } from './reactive'
 
 class RefImpl {
   // 用于存储当前 ref 的依赖
@@ -41,6 +41,43 @@ class RefImpl {
   }
 }
 
+class ObjectRefImpl {
+  public readonly [ReactiveFlags.IS_REF] = true
+  public _value
+
+  constructor(
+    private readonly _object,
+    public readonly _key,
+    public readonly _defaultValue,
+  ) {}
+
+  get value() {
+    const val = this._object[this._key]
+    return this._value = val === undefined ? this._defaultValue : val
+  }
+
+  set value(newValue) {
+    this._object[this._key] = newValue
+  }
+}
+
+class GetterRefImpl {
+  public readonly [ReactiveFlags.IS_REF] = true
+  public readonly [ReactiveFlags.IS_READONLY] = true
+  public _value
+
+  constructor(private readonly _getter) {}
+
+  get value() {
+    return (this._value = this._getter())
+  }
+}
+
+function propertyToRef(source, key, defaultValue?) {
+  const val = source[key]
+  return isRef(val) ? val : (new ObjectRefImpl(source, key, defaultValue))
+}
+
 // 收集 ref 依赖
 export function trackRefValue(ref) {
   // 判断是否需要收集，需要收集，则触发依赖收集
@@ -70,10 +107,62 @@ export function shallowRef(value) {
   return createRef(value, true)
 }
 
+export function toRef(source, key?, defaultValue?) {
+  if (isRef(source)) {
+    return source
+  }
+  else if (isFunction(source)) {
+    return new GetterRefImpl(source)
+  }
+  else if (isObject(source) && arguments.length > 1) {
+    return propertyToRef(source, key!, defaultValue)
+  }
+  else {
+    return ref(source)
+  }
+}
+
+export function toRefs(object) {
+  const ret = isArray(object) ? Array.from({ length: object.length }) : {}
+  for (const key in object) {
+    ret[key] = toRef(object, key)
+  }
+  return ret
+}
+
 export function isRef(val) {
   return val ? val[ReactiveFlags.IS_REF] === true : false
 }
 
 export function unref(ref) {
   return isRef(ref) ? ref.value : ref
+}
+
+const shallowUnwrapHandlers = {
+  get(target, key, receiver) {
+    return key === ReactiveFlags.RAW
+      ? target
+      : unref(Reflect.get(target, key, receiver))
+  },
+  set(target, key, value, receiver) {
+    const oldValue = target[key]
+
+    if (isRef(oldValue) && !isRef(value)) {
+      // 如果 oldValue 是一个 ref ，value 不是 ref，则直接设置 value
+
+      oldValue.value = value
+      return true
+    }
+    else {
+      return Reflect.set(target, key, value, receiver)
+    }
+  },
+}
+
+export function proxyRefs(objectWithRefs) {
+  return isReactive(objectWithRefs) ? objectWithRefs : new Proxy(objectWithRefs, shallowUnwrapHandlers)
+}
+
+export function toValue(source) {
+  return isFunction(source) ? source() : unref(source)
 }

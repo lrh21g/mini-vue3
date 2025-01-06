@@ -1,6 +1,38 @@
-import { isObject } from '@mini-vue3/shared'
+import { def, hasOwn, isObject, toRawType } from '@mini-vue3/shared'
 import { mutableHandlers, readonlyHandlers, shallowReactiveHandlers, shallowReadonlyHandlers } from './baseHandlers'
 import { ReactiveFlags } from './constants'
+
+enum TargetType {
+  // 无效对象
+  INVALID = 0,
+  // 普通对象
+  COMMON = 1,
+  // 集合对象
+  COLLECTION = 2,
+}
+
+function targetTypeMap(rawType: string) {
+  switch (rawType) {
+    case 'Object':
+    case 'Array':
+      return TargetType.COMMON
+    case 'Map':
+    case 'Set':
+    case 'WeakMap':
+    case 'WeakSet':
+      return TargetType.COLLECTION
+    default:
+      return TargetType.INVALID
+  }
+}
+
+// 获取对象类型
+function getTargetType(value) {
+  // 如果对象不需要代理或者是不可扩展对象，则不需要代理
+  return value[ReactiveFlags.SKIP] || !Object.isExtensible(value)
+    ? TargetType.INVALID
+    : targetTypeMap(toRawType(value))
+}
 
 // 用于缓存响应式对象
 // WeakMap ： 键值对的集合，其中的键必须是对象或 Symbol ，且值可以是任意的 JavaScript 类型，并且不会创建对它的键的强引用。
@@ -30,6 +62,13 @@ export function createReactiveObject(target, isReadonly, proxyMap, baseHandlers)
   const existProxy = proxyMap.get(target)
   if (existProxy) {
     return existProxy
+  }
+
+  // 获取当前对象的类型
+  const targetType = getTargetType(target)
+  if (targetType === TargetType.INVALID) {
+    // 如果当前的对象是无效的对象，则直接返回（例如函数、其他对象）
+    return target
   }
 
   const proxy = new Proxy(
@@ -65,7 +104,20 @@ export function toRaw(observed) {
   return raw ? toRaw(raw) : observed
 }
 
+// 标记对象不可被转为代理对象，返回该对象本身
+export function markRaw(val) {
+  // Object.isExtensible() : 判断一个对象是否是可扩展的（是否可以在它上面添加新的属性）
+  // 可以使用 Object.preventExtensions()、Object.seal()、Object.freeze() 或 Reflect.preventExtensions() 中的任一方法将对象标记为不可扩展。
+  if (!hasOwn(val, ReactiveFlags.SKIP) && Object.isExtensible(val)) {
+    def(val, ReactiveFlags.SKIP, true)
+  }
+  return val
+}
+
 export function isReactive(val) {
+  if (isReadonly(val)) {
+    return isReactive(val[ReactiveFlags.RAW])
+  }
   return !!val[ReactiveFlags.IS_REACTIVE]
 }
 

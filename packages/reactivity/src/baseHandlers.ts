@@ -7,6 +7,9 @@ import { isRef } from './ref'
 // 创建拦截读取操作的捕获器
 function createGetter(isReadonly = false, isShallow = false) {
   return function get(target, key, receiver) {
+    if (key === ReactiveFlags.SKIP)
+      return target[ReactiveFlags.SKIP]
+
     if (key === ReactiveFlags.IS_REACTIVE) {
       return !isReadonly
     }

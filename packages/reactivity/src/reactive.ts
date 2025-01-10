@@ -1,5 +1,21 @@
-import { def, hasOwn, isObject, toRawType } from '@mini-vue3/shared'
-import { mutableHandlers, readonlyHandlers, shallowReactiveHandlers, shallowReadonlyHandlers } from './baseHandlers'
+import {
+  def,
+  hasOwn,
+  isObject,
+  toRawType,
+} from '@mini-vue3/shared'
+import {
+  mutableHandlers,
+  readonlyHandlers,
+  shallowReactiveHandlers,
+  shallowReadonlyHandlers,
+} from './baseHandlers'
+import {
+  mutableCollectionHandlers,
+  readonlyCollectionHandlers,
+  shallowReactiveCollectionHandlers,
+  shallowReadonlyCollectionHandlers,
+} from './collectionHandlers'
 import { ReactiveFlags } from './constants'
 
 enum TargetType {
@@ -50,11 +66,17 @@ export const shallowReadonlyMap = new WeakMap()
  * @param proxyMap 缓存当前响应式对象
  * @param baseHandlers 普通对象的拦截处理
  */
-export function createReactiveObject(target, isReadonly, proxyMap, baseHandlers) {
+export function createReactiveObject(target, isReadonly, proxyMap, baseHandlers, collectionHandlers) {
+  // 如果当前对象是非只读响应式代理对象，则直接返回
   if (
     target[ReactiveFlags.RAW]
     && !(isReadonly && target[ReactiveFlags.IS_REACTIVE])
   ) {
+    return target
+  }
+
+  // 如果不是对象，则直接返回
+  if (!isObject(target)) {
     return target
   }
 
@@ -73,7 +95,7 @@ export function createReactiveObject(target, isReadonly, proxyMap, baseHandlers)
 
   const proxy = new Proxy(
     target,
-    baseHandlers,
+    targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers,
   )
   // 缓存当前响应式对象
   proxyMap.set(target, proxy)
@@ -81,22 +103,47 @@ export function createReactiveObject(target, isReadonly, proxyMap, baseHandlers)
 }
 
 export function reactive(target) {
-  return createReactiveObject(target, false, reactiveMap, mutableHandlers)
+  return createReactiveObject(
+    target,
+    false,
+    reactiveMap,
+    mutableHandlers,
+    mutableCollectionHandlers,
+  )
 }
 
 export function readonly(target) {
-  return createReactiveObject(target, true, readonlyMap, readonlyHandlers)
+  return createReactiveObject(
+    target,
+    true,
+    readonlyMap,
+    readonlyHandlers,
+    readonlyCollectionHandlers,
+  )
 }
 
 export function shallowReactive(target) {
-  return createReactiveObject(target, false, shallowReactiveMap, shallowReactiveHandlers)
+  return createReactiveObject(
+    target,
+    false,
+    shallowReactiveMap,
+    shallowReactiveHandlers,
+    shallowReactiveCollectionHandlers,
+  )
 }
 
 export function shallowReadonly(target) {
-  return createReactiveObject(target, true, shallowReadonlyMap, shallowReadonlyHandlers)
+  return createReactiveObject(
+    target,
+    true,
+    shallowReadonlyMap,
+    shallowReadonlyHandlers,
+    shallowReadonlyCollectionHandlers,
+  )
 }
 
 export const toReactive = val => isObject(val) ? reactive(val) : val
+export const toReadonly = val => isObject(val) ? readonly(val) : val
 
 // 转换为普通对象
 export function toRaw(observed) {
@@ -118,17 +165,17 @@ export function isReactive(val) {
   if (isReadonly(val)) {
     return isReactive(val[ReactiveFlags.RAW])
   }
-  return !!val[ReactiveFlags.IS_REACTIVE]
+  return !!(val && val[ReactiveFlags.IS_REACTIVE])
 }
 
 export function isReadonly(val) {
-  return !!val[ReactiveFlags.IS_READONLY]
+  return !!(val && val[ReactiveFlags.IS_READONLY])
 }
 
 export function isShallow(val) {
-  return !!val[ReactiveFlags.IS_SHALLOW]
+  return !!(val && val[ReactiveFlags.IS_SHALLOW])
 }
 
 export function isProxy(val) {
-  return !!val[ReactiveFlags.RAW]
+  return !!(val && val[ReactiveFlags.RAW])
 }

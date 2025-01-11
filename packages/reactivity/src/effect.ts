@@ -20,7 +20,7 @@ const targetMap = new WeakMap()
 let activeEffect
 let shouldTrack = true // 是否应该收集依赖
 
-class ReactiveEffect {
+export class ReactiveEffect {
   // 用于维护父 effect
   parent = null
   // 用于记录 effect 依赖的属性

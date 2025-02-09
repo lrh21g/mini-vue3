@@ -1,3 +1,5 @@
+export function NOOP(): void {}
+
 export const objectToString: typeof Object.prototype.toString = Object.prototype.toString
 export const toTypeString = (value: unknown): string => objectToString.call(value)
 export function toRawType(value: unknown): string {
@@ -64,3 +66,67 @@ export function def(obj: object, key: string | symbol, value: any, writable = fa
     },
   )
 }
+
+// 接收一个函数 fn 作为参数，并返回一个新函数，通过缓存机制避免重复计算，提高性能
+function cacheStringFunction<T extends (str: string) => string>(fn: T): T {
+  // 创建一个没有集成 Object.prototype 的对象，避免潜在的属性冲突
+  const cache: Record<string, string> = Object.create(null)
+  // 返回新的函数
+  // 缓存机制：如果缓存 cache 对象中，已经存在字符串 str 对应的缓存结果 hit ，则直接返回缓存中的值；否则调用原始函数 fn 进行转换，并将结果缓存在 cache 中
+  return ((str: string) => {
+    const hit = cache[str]
+    return hit || (cache[str] = fn(str))
+  }) as T
+}
+
+const camelizeRE = /-(\w)/g
+// 将连字符命名转化为驼峰式命名。例如： camel-case 会变成 camelCase
+// 将一个以连字符（-）分隔的字符串转换为驼峰式（camelCase）字符串
+export const camelize: (str: string) => string = cacheStringFunction(
+  (str: string): string => {
+    return str.replace(camelizeRE, (_, c) => (c ? c.toUpperCase() : ''))
+  },
+)
+
+// 正则表达式说明
+// \B：匹配非单词边界（即，大写字母前面不能是空格或其他标点符号）
+// ([A-Z])：捕获一个大写字母
+const hyphenateRE = /\B([A-Z])/g
+// 将驼峰式命名转换为连字符命名。例如： kebabCase 会变成 kebab-case
+export const hyphenate: (str: string) => string = cacheStringFunction(
+  (str: string) => str.replace(hyphenateRE, '-$1').toLowerCase(),
+)
+
+// 将字符串首字母大写的函数
+export const capitalize: <T extends string>(str: T) => Capitalize<T>
+  = cacheStringFunction(<T extends string>(str: T) => {
+    return (str.charAt(0).toUpperCase() + str.slice(1)) as Capitalize<T>
+  })
+
+export function isOn(key: string): boolean {
+  return key.charCodeAt(0) === 111 /* o */
+    && key.charCodeAt(1) === 110 /* n */
+    // 大写字母 A-Z
+    && (key.charCodeAt(2) > 122 || key.charCodeAt(2) < 97)
+}
+export function isModelListener(key: string): key is `onUpdate:${string}` {
+  return key.startsWith('onUpdate:')
+}
+
+// 接受一个函数数组（fns）和若干参数（arg），然后依次调用数组中的每个函数，并传递这些参数
+export function invokeArrayFns(fns: Array<(...args: any[]) => void>, ...arg: any[]): void {
+  for (let i = 0; i < fns.length; i++) {
+    fns[i](...arg)
+  }
+}
+
+// 将一个事件名（字符串）转换为事件处理函数的名称
+// e.g. "click" => "onClick" ; "mousedown" => "onMousedown" ; "" => ""
+export const toHandlerKey: <T extends string>(
+  str: T,
+) => T extends '' ? '' : `on${Capitalize<T>}` = cacheStringFunction(
+  <T extends string>(str: T) => {
+    const s = str ? `on${capitalize(str)}` : ``
+    return s as T extends '' ? '' : `on${Capitalize<T>}`
+  },
+)

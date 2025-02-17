@@ -24,6 +24,8 @@ export default antfu(
     ignores: [],
   },
   {
-    rules: {},
+    rules: {
+      'no-irregular-whitespace': 'off',
+    },
   },
 )

@@ -57,11 +57,35 @@ importers:
         specifier: ^2.1.8
         version: 2.1.8(@types/node@22.10.2)(@vitest/ui@2.1.8)
 
+  packages/compiler-core: {}
+
   packages/reactivity:
     dependencies:
       '@mini-vue3/shared':
         specifier: workspace:*
         version: link:../shared
+
+  packages/runtime-core:
+    dependencies:
+      '@mini-vue3/reactivity':
+        specifier: workspace:*
+        version: link:../reactivity
+      '@mini-vue3/shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/runtime-dom:
+    dependencies:
+      '@mini-vue3/runtime-core':
+        specifier: workspace:*
+        version: link:../runtime-core
+      '@mini-vue3/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/trusted-types':
+        specifier: ^2.0.7
+        version: 2.0.7
 
   packages/shared: {}
 
@@ -677,6 +701,9 @@ packages:
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
+
+  '@types/trusted-types@2.0.7':
+    resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -3474,6 +3501,8 @@ snapshots:
       undici-types: 6.20.0
 
   '@types/normalize-package-data@2.4.4': {}
+
+  '@types/trusted-types@2.0.7': {}
 
   '@types/unist@3.0.3': {}
 

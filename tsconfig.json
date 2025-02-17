@@ -9,6 +9,7 @@
     "paths": {
       "@mini-vue3/*": ["packages/*/src"]
     },
+    "resolveJsonModule": true,
     "types": [
       "vitest/globals"
     ],

@@ -1,4 +1,7 @@
 export * from './domAttrConfig'
+export * from './domTagConfig'
 export * from './general'
 export * from './makeMap'
+export * from './patchFlags'
 export * from './shapeFlags'
+export * from './toDisplayString'

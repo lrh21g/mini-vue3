@@ -5,5 +5,8 @@
   "author": "",
   "license": "ISC",
   "keywords": [],
-  "main": "index.js"
+  "main": "index.js",
+  "dependencies": {
+    "@mini-vue3/reactivity": "workspace:*"
+  }
 }

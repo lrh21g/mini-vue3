@@ -1,4 +1,5 @@
 /* eslint-disable ts/no-unsafe-function-type */
+import type { CompilerOptions } from '@mini-vue3/compiler-core'
 import type { VNode } from './vnode'
 import { enableTracking, pauseTracking, proxyRefs, shallowReadonly } from '@mini-vue3/reactivity'
 import { isFunction, isObject, isPromise, NOOP, ShapeFlags } from '@mini-vue3/shared'
@@ -42,6 +43,7 @@ export interface FunctionalComponent {
   (props: Data, ctx: Omit<SetupContext, 'expose'>): any
   props?: Data
   emits?: string[]
+  displayName?: string
 }
 
 export interface baseComponentOptions {
@@ -106,6 +108,12 @@ let compile: CompileFunction
 
 export function registerRuntimeCompiler(_compile: any) {
   compile = _compile
+}
+
+export function getComponentName(component) {
+  return isFunction(component)
+    ? (component as any).displayName || component.name
+    : component.name
 }
 
 // 全局变量，用于保存当前正在初始化的组件实例

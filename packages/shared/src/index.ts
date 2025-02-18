@@ -1,5 +1,6 @@
 export * from './domAttrConfig'
 export * from './domTagConfig'
+export * from './escapeHtml'
 export * from './general'
 export * from './makeMap'
 export * from './patchFlags'

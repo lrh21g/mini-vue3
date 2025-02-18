@@ -1,0 +1,16 @@
+{
+  "name": "@mini-vue3/vue",
+  "version": "1.0.0",
+  "description": "",
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
+  "main": "index.js",
+  "dependencies": {
+    "@mini-vue3/compiler-dom": "workspace:*",
+    "@mini-vue3/reactivity": "workspace:*",
+    "@mini-vue3/runtime-dom": "workspace:*",
+    "@mini-vue3/server-renderer": "workspace:*",
+    "@mini-vue3/shared": "workspace:*"
+  }
+}
